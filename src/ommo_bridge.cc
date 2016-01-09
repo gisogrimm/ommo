@@ -73,9 +73,9 @@ void midi_client_t::emit_event(int channel, int param, int value)
 class osc_destination_t {
 public:
   enum arg_mode_t {
-    source, replace, reorder
+    source, replace, reorder, printf
   };
-  osc_destination_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode);
+  osc_destination_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode, const std::string& format);
   ~osc_destination_t();
   static int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data);
   int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg);
@@ -90,6 +90,7 @@ private:
   lo_address target_;
   std::string path_;
   std::vector<unsigned int> argmap_;
+  std::string format_;
   arg_mode_t argmode_;
   lo_message own_msg;
   bool use_condition;
@@ -158,11 +159,12 @@ bool osc_destination_t::lo_message_copy_arg(lo_message dest, lo_message src, int
   return false;
 }
 
-osc_destination_t::osc_destination_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode)
+osc_destination_t::osc_destination_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode, const std::string& format)
   : target_(lo_address_new_from_url(target.c_str())),
     path_(path),
     argmap_(argmap),
     argmode_(argmode),
+    format_(format),
     own_msg(lo_message_new()),
     use_condition(false),
     condition_val(0),
@@ -214,6 +216,16 @@ int osc_destination_t::event_handler(const char *path, const char *types, lo_arg
       }
       lo_send_message( target_, path_.c_str(), msg );
       lo_message_free(msg);
+    }
+    break;
+  case printf :
+    {
+      if( (strcmp(types,"f")==0) && (argc==1) ){
+        char ctmp[1024];
+        ctmp[1023] = 0;
+        snprintf(ctmp,1023,format_.c_str(),argv[0]->f);
+        lo_send( target_, path_.c_str(), "s", ctmp );
+      }
     }
     break;
   }
@@ -318,7 +330,10 @@ osc_destination_t* xml_oscdest_alloc(xmlpp::Element* TargetElem)
       }
     }
   }
-  osc_destination_t* pDestination(new osc_destination_t(dest,path,argmap,argmode));
+  std::string format(TargetElem->get_attribute_value("printf"));
+  if( format.size() )
+    argmode = osc_destination_t::printf;
+  osc_destination_t* pDestination(new osc_destination_t(dest,path,argmap,argmode,format));
   // now set condition data:
   std::string condition(TargetElem->get_attribute_value("condition"));
   if( condition.size() > 0 )
