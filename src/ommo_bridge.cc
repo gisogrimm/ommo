@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <alsa/asoundlib.h>
 #include <alsa/seq_event.h>
+#include <math.h>
 
 #include "libhos_midi_ctl.h"
 
@@ -80,6 +81,7 @@ public:
   static int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data);
   int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg);
   void set_valmap(float v1, float v2);
+  void set_gamma(float g) {gamma = g;};
   void add_float(float f);
   void add_int32(int32_t f);
   void add_string(const std::string& s);
@@ -98,6 +100,7 @@ private:
   bool use_valmap;
   float val_min;
   float val_scale;
+  float gamma;
 };
 
 void osc_destination_t::set_valmap(float v1, float v2)
@@ -168,7 +171,8 @@ osc_destination_t::osc_destination_t(const std::string& target,const std::string
     own_msg(lo_message_new()),
     use_condition(false),
     condition_val(0),
-    use_valmap(false)
+    use_valmap(false),
+    gamma(1.0)
 {
   lo_address_set_ttl(target_,1);
 }
@@ -221,9 +225,12 @@ int osc_destination_t::event_handler(const char *path, const char *types, lo_arg
   case printf :
     {
       if( (strcmp(types,"f")==0) && (argc==1) ){
+        float val(pow(argv[0]->f,gamma));
+        if( use_valmap )
+          val = val_scale*val+val_min;
         char ctmp[1024];
         ctmp[1023] = 0;
-        snprintf(ctmp,1023,format_.c_str(),argv[0]->f);
+        snprintf(ctmp,1023,format_.c_str(),val);
         lo_send( target_, path_.c_str(), "s", ctmp );
       }
     }
@@ -339,6 +346,9 @@ osc_destination_t* xml_oscdest_alloc(xmlpp::Element* TargetElem)
   if( condition.size() > 0 )
     pDestination->set_condition(atof(condition.c_str()));
   // value mapping:
+  std::string gamma(TargetElem->get_attribute_value("gamma"));
+  if( gamma.size() > 0 )
+    pDestination->set_gamma(atof(gamma.c_str()));
   std::string s_valmap(TargetElem->get_attribute_value("valmap"));
   if( s_valmap.size() > 0 ){
     std::vector<float> val_map;
