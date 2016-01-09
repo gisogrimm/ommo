@@ -26,3 +26,13 @@
 *.exe
 *.out
 *.app
+build
+
+# external library
+tascar
+
+# backup files
+*~
+
+# auto-generated make files
+*.mk
