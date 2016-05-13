@@ -2,11 +2,11 @@ ARCH = $(shell uname -m)
 
 PREFIX = /usr/local
 
-BINFILES = ommo_bridge
+BINFILES = ommo_bridge test_artnetdmx
 
 INSTBIN = $(patsubst %,$(PREFIX)/bin/%,$(BINFILES))
 
-OBJECTS = libhos_midi_ctl.o
+OBJECTS = libhos_midi_ctl.o artnet.o
 
 EXTERNALS = alsa libxml++-2.6 liblo
 
