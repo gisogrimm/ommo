@@ -1,2 +1,3 @@
 # ommo
-OSC and MIDI to MIDI and OSC bridge
+OSC and MIDI-CC to MIDI-CC and OSC bridge
+
