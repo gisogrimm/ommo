@@ -1,280 +1,12 @@
 #include "osc_helper.h"
-#include <string>
-#include <vector>
 #include <libxml++/libxml++.h>
-#include <string.h>
 #include <iostream>
 #include <stdlib.h>
-#include <alsa/asoundlib.h>
-#include <alsa/seq_event.h>
 #include <math.h>
 
-#include "libhos_midi_ctl.h"
-
-#define DEBUG(x) std::cerr << __FILE__ << ":" << __LINE__ << " " << #x << "=" << x << std::endl
-#define MIDISC 0.0078740157480314959537182f
-
-class midi_client_t : public midi_ctl_t {
-public:
-  midi_client_t(const std::string& name);
-  ~midi_client_t();
-  void add_method(uint8_t channel, uint8_t param, lo_method_handler lh, void* data);
-protected:
-  void emit_event(int channel, int param, int value);
-private:
-  class handler_t {
-  public:
-    handler_t(uint8_t ch,uint8_t par,lo_method_handler lh,void* data);
-    void emit(uint8_t ch,uint8_t par,uint8_t value);
-  private:
-    lo_method_handler lh_;
-    void* data_;
-    uint8_t ch_;
-    uint8_t par_;
-  };
-  std::vector<handler_t> vH;
-};
-
-midi_client_t::handler_t::handler_t(uint8_t ch,uint8_t par,lo_method_handler lh,void* data)
-  : lh_(lh),data_(data),ch_(ch),par_(par)
-{
-}
-
-void midi_client_t::handler_t::emit(uint8_t ch,uint8_t par,uint8_t value)
-{
-  if( (ch==ch_) && (par==par_) ){
-    // emit message
-    lo_message msg(lo_message_new());
-    lo_message_add_float(msg,MIDISC*value);
-    lh_("/midicc",lo_message_get_types(msg),lo_message_get_argv(msg),lo_message_get_argc(msg),msg,data_);
-    lo_message_free(msg);
-  }
-}
-
-void midi_client_t::add_method(uint8_t channel, uint8_t param, lo_method_handler lh, void* data)
-{
-  vH.push_back(midi_client_t::handler_t(channel,param,lh,data));
-}
-
-midi_client_t::midi_client_t(const std::string& name)
-  : midi_ctl_t(name)
-{
-}
-
-midi_client_t::~midi_client_t()
-{
-}
-
-void midi_client_t::emit_event(int channel, int param, int value)
-{
-  for(std::vector<midi_client_t::handler_t>::iterator it=vH.begin();it!=vH.end();++it)
-    it->emit(channel,param,value);
-}
-
-class osc_destination_t {
-public:
-  enum arg_mode_t {
-    source, replace, reorder, printf
-  };
-  osc_destination_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode, const std::string& format);
-  ~osc_destination_t();
-  static int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data);
-  int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg);
-  void set_valmap(float v1, float v2);
-  void set_gamma(float g) {gamma = g;};
-  void add_float(float f);
-  void add_int32(int32_t f);
-  void add_string(const std::string& s);
-  void set_condition(float val);
-  void remove_condition();
-  bool lo_message_copy_arg(lo_message dest, lo_message src, int arg, bool x_valmap);
-private:
-  lo_address target_;
-  std::string path_;
-  std::vector<unsigned int> argmap_;
-  std::string format_;
-  arg_mode_t argmode_;
-  lo_message own_msg;
-  bool use_condition;
-  float condition_val;
-  bool use_valmap;
-  float val_min;
-  float val_scale;
-  float gamma;
-};
-
-void osc_destination_t::set_valmap(float v1, float v2)
-{
-  val_min = v1;
-  //val_scale = std::min(1.0,std::max(0.0,1.0/(v2-v1)));
-  val_scale = (v2-v1);
-  use_valmap = true;
-}
-
-void osc_destination_t::set_condition(float val)
-{
-  use_condition = true;
-  condition_val = val;
-}
-
-void osc_destination_t::remove_condition()
-{
-  use_condition = false;
-}
-
-void osc_destination_t::add_float(float f)
-{
-  lo_message_add_float(own_msg,f);
-}
-
-void osc_destination_t::add_int32(int32_t i)
-{
-  lo_message_add_float(own_msg,i);
-}
-
-void osc_destination_t::add_string(const std::string& s)
-{
-  lo_message_add_string(own_msg,s.c_str());
-}
-
-bool osc_destination_t::lo_message_copy_arg(lo_message dest, lo_message src, int arg, bool x_valmap)
-{
-  int argc(lo_message_get_argc(src));
-  const char* types(lo_message_get_types(src));
-  lo_arg** argv(lo_message_get_argv(src));
-  float val;
-  if( (arg >= 0) && (arg < argc) ){
-    switch( types[arg] ){
-    case 'i' :
-      lo_message_add_int32(dest,argv[arg]->i);
-      return true;
-    case 'f' :
-      val = argv[arg]->f;
-      if( use_valmap && x_valmap )
-        val = val_scale*val+val_min;
-      lo_message_add_float(dest,val);
-      return true;
-    case 's' :
-      lo_message_add_string(dest,&(argv[arg]->s));
-      return true;
-    }
-  }
-  return false;
-}
-
-osc_destination_t::osc_destination_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode, const std::string& format)
-  : target_(lo_address_new_from_url(target.c_str())),
-    path_(path),
-    argmap_(argmap),
-    argmode_(argmode),
-    format_(format),
-    own_msg(lo_message_new()),
-    use_condition(false),
-    condition_val(0),
-    use_valmap(false),
-    gamma(1.0)
-{
-  lo_address_set_ttl(target_,1);
-}
-
-osc_destination_t::~osc_destination_t()
-{
-  lo_message_free(own_msg);
-  lo_address_free(target_);
-}
-
-int osc_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data)
-{
-  return ((osc_destination_t*)user_data)->event_handler(path,types,argv,argc,msg);
-}
-
-int osc_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
-{
-  if( use_condition ){
-    if( (argc > 0) && (types[0] == 'f') )
-      if( (argv[0]->f) != condition_val )
-        return 1;
-  }
-  switch( argmode_ ){
-  case source :
-    {
-      lo_send_message( target_, path_.c_str(), in_msg );
-    }
-    break;
-  case replace :
-    {
-      lo_send_message( target_, path_.c_str(), own_msg );
-    }
-    break;
-  case reorder :
-    {
-      lo_message msg(lo_message_new());
-      int own_msg_arg_index(0);
-      for(unsigned int k=0;k<argmap_.size();k++){
-        if( (argmap_[k]) == 0 ){
-          lo_message_copy_arg( msg, own_msg, own_msg_arg_index, false );
-          own_msg_arg_index++;
-        }else{
-          lo_message_copy_arg( msg, in_msg, argmap_[k]-1, true );
-        }
-      }
-      lo_send_message( target_, path_.c_str(), msg );
-      lo_message_free(msg);
-    }
-    break;
-  case printf :
-    {
-      if( (strcmp(types,"f")==0) && (argc==1) ){
-        float val(pow(argv[0]->f,gamma));
-        if( use_valmap )
-          val = val_scale*val+val_min;
-        char ctmp[1024];
-        ctmp[1023] = 0;
-        snprintf(ctmp,1023,format_.c_str(),val);
-        lo_send( target_, path_.c_str(), "s", ctmp );
-      }
-    }
-    break;
-  }
-  return 1;
-}
-
-class midi_destination_t {
-public:
-  midi_destination_t(midi_client_t& mc, unsigned int channel, unsigned int param, unsigned argnum);
-  ~midi_destination_t();
-  static int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data);
-  int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg);
-private:
-  midi_client_t& mc_;
-  unsigned int channel_;
-  unsigned int param_;
-  unsigned int argnum_;
-};
-
-midi_destination_t::midi_destination_t(midi_client_t& mc, unsigned int channel, unsigned int param, unsigned argnum)
-  : mc_(mc),
-    channel_(channel),
-    param_(param),
-    argnum_(argnum)
-{
-}
-
-midi_destination_t::~midi_destination_t()
-{
-}
-
-int midi_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data)
-{
-  return ((midi_destination_t*)user_data)->event_handler(path,types,argv,argc,msg);
-}
-
-int midi_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
-{
-  if( ((int)(argnum_) < argc) && (types[argnum_] == 'f') )
-    mc_.send_midi(channel_,param_,127*(argv[argnum_]->f));
-  return 1;
-}
+#include "ommo_midi.h"
+#include "ommo_oscdest.h"
+#include "ommo_artnetdmx.h"
 
 static int exit_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data)
 {
@@ -285,11 +17,14 @@ static int exit_handler(const char *path, const char *types, lo_arg **argv, int 
 typedef std::vector<TASCAR::osc_server_t*> serverlist_t;
 typedef std::vector<TASCAR::osc_server_t*>::iterator serverlist_it_t;
 
-typedef std::vector<osc_destination_t*> destlist_t;
-typedef std::vector<osc_destination_t*>::iterator destlist_it_t;
+typedef std::vector<osc_destination_t*> list_dest_osc_t;
+typedef std::vector<osc_destination_t*>::iterator list_dest_osc_it_t;
 
-typedef std::vector<midi_destination_t*> midilist_t;
-typedef std::vector<midi_destination_t*>::iterator midilist_it_t;
+typedef std::vector<midi_destination_t*> list_dest_midi_t;
+typedef std::vector<midi_destination_t*>::iterator list_dest_midi_it_t;
+
+typedef std::vector<artnet_dest_t*> list_dest_dmx_t;
+typedef std::vector<artnet_dest_t*>::iterator list_dest_dmx_it_t;
 
 void xml_oscdest_data(osc_destination_t* pDestination,xmlpp::Element* TargetElem)
 {
@@ -384,8 +119,9 @@ int main(int argc, char** argv)
   controller.activate();
   midi_client_t midic("ommo_bridge");
   serverlist_t serverlist;
-  destlist_t destlist;
-  midilist_t midilist;
+  list_dest_osc_t list_dest_osc;
+  list_dest_midi_t list_dest_midi;
+  list_dest_dmx_t list_dest_dmx;
   xmlpp::DomParser parser(cfgfile);
   xmlpp::Element* root = parser.get_document()->get_root_node();
   if( root ){
@@ -407,8 +143,8 @@ int main(int argc, char** argv)
             std::string serverpath(TargetElem->get_attribute_value("serverpath"));
             std::string types(TargetElem->get_attribute_value("types"));
             osc_destination_t* pDestination(xml_oscdest_alloc(TargetElem));
-            pServer->add_method(serverpath,types.c_str(),osc_destination_t::event_handler,pDestination);
-            destlist.push_back(pDestination);
+            pServer->add_method(serverpath,types.c_str(),osc_destination_t::static_event_handler,pDestination);
+            list_dest_osc.push_back(pDestination);
           }
         }
         // scan midi targets:
@@ -427,8 +163,20 @@ int main(int argc, char** argv)
             std::string types(MidiElem->get_attribute_value("types"));
             midi_destination_t* pMidi;
             pMidi = new midi_destination_t(midic,channel,param,argnum);
-            pServer->add_method(serverpath,types.c_str(),midi_destination_t::event_handler,pMidi);
-            midilist.push_back(pMidi);
+            pServer->add_method(serverpath,types.c_str(),midi_destination_t::static_event_handler,pMidi);
+            list_dest_midi.push_back(pMidi);
+          }
+        }
+        // scan DMX targets:
+        xmlpp::Node::NodeList DMXNodes = ServerElem->get_children("dmx");
+        for(xmlpp::Node::NodeList::iterator TargetIt=DMXNodes.begin();
+            TargetIt != DMXNodes.end(); ++TargetIt){
+          xmlpp::Element* TargetElem = dynamic_cast<xmlpp::Element*>(*TargetIt);
+          if( TargetElem ){
+            list_dest_dmx.push_back(new artnet_dest_t(TargetElem));
+            std::string serverpath(TargetElem->get_attribute_value("serverpath"));
+            std::string types(TargetElem->get_attribute_value("types"));
+            pServer->add_method(serverpath,types.c_str(),artnet_dest_t::static_event_handler,list_dest_dmx.back());
           }
         }
         serverlist.push_back(pServer);
@@ -451,8 +199,8 @@ int main(int argc, char** argv)
             std::string s_cparam(TargetElem->get_attribute_value("clientparam"));
             int cparam(atoi(s_cparam.c_str()));
             osc_destination_t* pDestination(xml_oscdest_alloc(TargetElem));
-            midic.add_method(cchannel,cparam,osc_destination_t::event_handler,pDestination);
-            destlist.push_back(pDestination);
+            midic.add_method(cchannel,cparam,osc_destination_t::static_event_handler,pDestination);
+            list_dest_osc.push_back(pDestination);
           }
         }
         // scan midi targets:
@@ -471,8 +219,8 @@ int main(int argc, char** argv)
             int param(atoi(s_param.c_str()));
             midi_destination_t* pMidi;
             pMidi = new midi_destination_t(midic,channel,param,0);
-            midic.add_method(cchannel,cparam,midi_destination_t::event_handler,pMidi);
-            midilist.push_back(pMidi);
+            midic.add_method(cchannel,cparam,midi_destination_t::static_event_handler,pMidi);
+            list_dest_midi.push_back(pMidi);
           }
         }
       }
@@ -491,9 +239,9 @@ int main(int argc, char** argv)
   // clean up:
   for( serverlist_it_t srv=serverlist.begin();srv!=serverlist.end();++srv)
     delete (*srv);
-  for( midilist_it_t it=midilist.begin();it!=midilist.end();++it)
+  for( list_dest_midi_it_t it=list_dest_midi.begin();it!=list_dest_midi.end();++it)
     delete (*it);
-  for( destlist_it_t it=destlist.begin();it!=destlist.end();++it)
+  for( list_dest_osc_it_t it=list_dest_osc.begin();it!=list_dest_osc.end();++it)
     delete (*it);
   return 0;
 }

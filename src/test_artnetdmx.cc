@@ -1,4 +1,4 @@
-#include "artnet.h"
+#include "ommo_artnetdmx.h"
 
 int main(int argc, char** argv)
 {

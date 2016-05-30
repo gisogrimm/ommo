@@ -6,13 +6,13 @@ BINFILES = ommo_bridge test_artnetdmx
 
 INSTBIN = $(patsubst %,$(PREFIX)/bin/%,$(BINFILES))
 
-OBJECTS = libhos_midi_ctl.o artnet.o
+OBJECTS = libhos_midi_ctl.o ommo_dest.o ommo_midi.o ommo_oscdest.o ommo_artnetdmx.o
 
-EXTERNALS = alsa libxml++-2.6 liblo
+EXTERNALS = alsa jack sndfile libxml++-2.6 liblo
 
 VPATH = ../src
 
-LDLIBS += -ltascar
+LDLIBS += -ltascar -ldl
 LDFLAGS += -L../tascar/build
 CXXFLAGS += -I../tascar/src
 CPPFLAGS += -I../tascar/src
@@ -53,3 +53,8 @@ clean:
 
 tascar:
 	git clone https://github.com/gisogrimm/tascar
+
+.PHONY : doc
+
+doc:
+	(cd doc && doxygen doxygen.cfg)
