@@ -9,8 +9,7 @@ public:
     source, replace, reorder, printf
   };
   osc_destination_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode, const std::string& format);
-  ~osc_destination_t();
-  //static int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data);
+  virtual ~osc_destination_t();
   int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg);
   void set_valmap(float v1, float v2);
   void set_gamma(float g) {gamma = g;};
@@ -24,8 +23,8 @@ private:
   lo_address target_;
   std::string path_;
   std::vector<unsigned int> argmap_;
-  std::string format_;
   arg_mode_t argmode_;
+  std::string format_;
   lo_message own_msg;
   bool use_condition;
   float condition_val;

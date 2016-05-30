@@ -1,4 +1,7 @@
 #include "ommo_dest.h"
+#include <iostream>
+
+#define DEBUG(x) std::cerr << __FILE__ << ":" << __LINE__ << ": " << __PRETTY_FUNCTION__ << " " << #x << "=" << x << std::endl
 
 dest_t::dest_t() 
 {

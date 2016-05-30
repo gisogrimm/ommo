@@ -134,6 +134,19 @@ int main(int argc, char** argv)
         std::string mcaddr(ServerElem->get_attribute_value("multicast"));
         std::string port(ServerElem->get_attribute_value("port"));
         TASCAR::osc_server_t* pServer = new TASCAR::osc_server_t(mcaddr,port);
+        // scan DMX targets:
+        xmlpp::Node::NodeList DMXNodes = ServerElem->get_children("dmx");
+        for(xmlpp::Node::NodeList::iterator TargetIt=DMXNodes.begin();
+            TargetIt != DMXNodes.end(); ++TargetIt){
+          xmlpp::Element* TargetElem = dynamic_cast<xmlpp::Element*>(*TargetIt);
+          if( TargetElem ){
+            artnet_dest_t* pDMX(new artnet_dest_t(TargetElem));
+            std::string serverpath(TargetElem->get_attribute_value("serverpath"));
+            std::string types(TargetElem->get_attribute_value("types"));
+            pServer->add_method(serverpath,types.c_str(),artnet_dest_t::static_event_handler,pDMX);
+            list_dest_dmx.push_back(pDMX);
+          }
+        }
         // scan OSC targets:
         xmlpp::Node::NodeList TargetNodes = ServerElem->get_children("osc");
         for(xmlpp::Node::NodeList::iterator TargetIt=TargetNodes.begin();
@@ -165,18 +178,6 @@ int main(int argc, char** argv)
             pMidi = new midi_destination_t(midic,channel,param,argnum);
             pServer->add_method(serverpath,types.c_str(),midi_destination_t::static_event_handler,pMidi);
             list_dest_midi.push_back(pMidi);
-          }
-        }
-        // scan DMX targets:
-        xmlpp::Node::NodeList DMXNodes = ServerElem->get_children("dmx");
-        for(xmlpp::Node::NodeList::iterator TargetIt=DMXNodes.begin();
-            TargetIt != DMXNodes.end(); ++TargetIt){
-          xmlpp::Element* TargetElem = dynamic_cast<xmlpp::Element*>(*TargetIt);
-          if( TargetElem ){
-            list_dest_dmx.push_back(new artnet_dest_t(TargetElem));
-            std::string serverpath(TargetElem->get_attribute_value("serverpath"));
-            std::string types(TargetElem->get_attribute_value("types"));
-            pServer->add_method(serverpath,types.c_str(),artnet_dest_t::static_event_handler,list_dest_dmx.back());
           }
         }
         serverlist.push_back(pServer);
@@ -242,6 +243,8 @@ int main(int argc, char** argv)
   for( list_dest_midi_it_t it=list_dest_midi.begin();it!=list_dest_midi.end();++it)
     delete (*it);
   for( list_dest_osc_it_t it=list_dest_osc.begin();it!=list_dest_osc.end();++it)
+    delete (*it);
+  for( list_dest_dmx_it_t it=list_dest_dmx.begin();it!=list_dest_dmx.end();++it)
     delete (*it);
   return 0;
 }

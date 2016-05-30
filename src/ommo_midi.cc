@@ -52,11 +52,6 @@ midi_destination_t::~midi_destination_t()
 {
 }
 
-//int midi_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data)
-//{
-//  return ((midi_destination_t*)user_data)->event_handler(path,types,argv,argc,msg);
-//}
-
 int midi_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
 {
   if( ((int)(argnum_) < argc) && (types[argnum_] == 'f') )

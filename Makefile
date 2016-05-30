@@ -14,8 +14,8 @@ VPATH = ../src
 
 LDLIBS += -ltascar -ldl
 LDFLAGS += -L../tascar/build
-CXXFLAGS += -I../tascar/src
-CPPFLAGS += -I../tascar/src
+CXXFLAGS += -I../tascar/src -Wall
+CPPFLAGS += -I../tascar/src -Wall
 
 LDLIBS += `pkg-config --libs $(EXTERNALS)`
 CXXFLAGS += `pkg-config --cflags $(EXTERNALS)`

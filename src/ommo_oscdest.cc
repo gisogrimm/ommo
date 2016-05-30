@@ -83,11 +83,6 @@ osc_destination_t::~osc_destination_t()
   lo_address_free(target_);
 }
 
-//int osc_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data)
-//{
-//  return ((osc_destination_t*)user_data)->event_handler(path,types,argv,argc,msg);
-//}
-
 int osc_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
 {
   if( use_condition ){

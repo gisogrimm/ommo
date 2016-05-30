@@ -44,6 +44,7 @@ artnet_dest_t::artnet_dest_t(xmlpp::Element* cfg)
   : artnet_cfg_t(cfg),
     artnetDMX_t(hostname.c_str(),port.c_str())
 {
+  prepare();
 }
 
 void artnet_dest_t::prepare()
@@ -71,6 +72,10 @@ artnet_cfg_t::artnet_cfg_t(xmlpp::Element* cfg)
   GET_ATTRIBUTE(universe);
   GET_ATTRIBUTE(channels);
   GET_ATTRIBUTE(scale);
+}
+
+artnet_dest_t::~artnet_dest_t()
+{
 }
 
 /*
