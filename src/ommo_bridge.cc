@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <math.h>
+#include <cli.h>
 
 #include "ommo_midi.h"
 #include "ommo_oscdest.h"
@@ -105,21 +106,48 @@ dest_osc_t* xml_oscdest_alloc(xmlpp::Element* TargetElem)
   return pDestination;
 }
 
+static bool b_quit;
+
+static void sighandler(int sig)
+{
+  b_quit = true;
+}
+
 int main(int argc, char** argv)
 {
+  b_quit = false;
+  signal(SIGABRT, &sighandler);
+  signal(SIGTERM, &sighandler);
+  signal(SIGINT, &sighandler);
   std::string cfgfile;
-  if( argc > 1 )
-    cfgfile = argv[1];
-  else{
-    std::cerr << "Usage: " << argv[0] << " <cfgfile> [ <ctlport> ]\n";
-    exit(1);
+  std::string ctlport;
+  const char *options = "hc:";
+  struct option long_options[] = { 
+    { "help",     0, 0, 'h' },
+    { "ctlport",  1, 0, 'c' },
+    { 0, 0, 0, 0 }
+  };
+  int opt(0);
+  int option_index(0);
+  while( (opt = getopt_long(argc, argv, options,
+                            long_options, &option_index)) != -1){
+    switch(opt){
+    case 'h':
+      TASCAR::app_usage("ommo_bridge",long_options,"configfile");
+      return -1;
+    case 'c':
+      ctlport = optarg;
+      break;
+    }
   }
-  std::string ctlport("9999");
-  if( argc > 2 )
-    ctlport = argv[2];
+  if( optind < argc )
+    cfgfile = argv[optind++];
+  if( cfgfile.size() == 0 ){
+    TASCAR::app_usage("ommo_bridge",long_options,"configfile");
+    return -1;
+  }
   TASCAR::osc_server_t controller("",ctlport);
-  bool b_exit(false);
-  controller.add_method("/quit","",exit_handler,&b_exit);
+  controller.add_method("/quit","",exit_handler,&b_quit);
   controller.activate();
   midi_client_t midic("ommo_bridge");
   serverlist_t serverlist;
@@ -263,7 +291,7 @@ int main(int argc, char** argv)
   for( serverlist_it_t srv=serverlist.begin();srv!=serverlist.end();++srv)
     (*srv)->activate();
   midic.start_service();
-  while(!b_exit){
+  while(!b_quit){
     usleep(1000);
   }
   midic.stop_service();
