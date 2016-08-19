@@ -33,10 +33,10 @@ public:
   std::vector<double> scale;
 };
 
-class artnet_dest_t : public dest_t, public artnet_cfg_t, public artnetDMX_t {
+class dest_artnetdmx_t : public dest_t, public artnet_cfg_t, public artnetDMX_t {
 public:
-  artnet_dest_t(xmlpp::Element* cfg);
-  virtual ~artnet_dest_t();
+  dest_artnetdmx_t(xmlpp::Element* cfg);
+  virtual ~dest_artnetdmx_t();
   void write_xml() {};
   virtual int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg);
   void prepare();

@@ -26,10 +26,10 @@ private:
   std::vector<handler_t> vH;
 };
 
-class midi_destination_t : public dest_t {
+class dest_midicc_t : public dest_t {
 public:
-  midi_destination_t(midi_client_t& mc, unsigned int channel, unsigned int param, unsigned argnum);
-  virtual ~midi_destination_t();
+  dest_midicc_t(midi_client_t& mc, unsigned int channel, unsigned int param, unsigned argnum);
+  virtual ~dest_midicc_t();
   int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg);
 private:
   midi_client_t& mc_;

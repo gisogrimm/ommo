@@ -18,19 +18,19 @@ static int exit_handler(const char *path, const char *types, lo_arg **argv, int 
 typedef std::vector<TASCAR::osc_server_t*> serverlist_t;
 typedef std::vector<TASCAR::osc_server_t*>::iterator serverlist_it_t;
 
-typedef std::vector<osc_destination_t*> list_dest_osc_t;
-typedef std::vector<osc_destination_t*>::iterator list_dest_osc_it_t;
+typedef std::vector<dest_osc_t*> list_dest_osc_t;
+typedef std::vector<dest_osc_t*>::iterator list_dest_osc_it_t;
 
-typedef std::vector<lsl_destination_t*> list_dest_lsl_t;
-typedef std::vector<lsl_destination_t*>::iterator list_dest_lsl_it_t;
+typedef std::vector<dest_lsl_t*> list_dest_lsl_t;
+typedef std::vector<dest_lsl_t*>::iterator list_dest_lsl_it_t;
 
-typedef std::vector<midi_destination_t*> list_dest_midi_t;
-typedef std::vector<midi_destination_t*>::iterator list_dest_midi_it_t;
+typedef std::vector<dest_midicc_t*> list_dest_midi_t;
+typedef std::vector<dest_midicc_t*>::iterator list_dest_midi_it_t;
 
-typedef std::vector<artnet_dest_t*> list_dest_dmx_t;
-typedef std::vector<artnet_dest_t*>::iterator list_dest_dmx_it_t;
+typedef std::vector<dest_artnetdmx_t*> list_dest_dmx_t;
+typedef std::vector<dest_artnetdmx_t*>::iterator list_dest_dmx_it_t;
 
-void xml_oscdest_data(osc_destination_t* pDestination,xmlpp::Element* TargetElem)
+void xml_oscdest_data(dest_osc_t* pDestination,xmlpp::Element* TargetElem)
 {
   xmlpp::Node::NodeList DataNodes = TargetElem->get_children("data");
   for(xmlpp::Node::NodeList::iterator DataIt=DataNodes.begin();
@@ -56,17 +56,17 @@ void xml_oscdest_data(osc_destination_t* pDestination,xmlpp::Element* TargetElem
   }
 }
 
-osc_destination_t* xml_oscdest_alloc(xmlpp::Element* TargetElem)
+dest_osc_t* xml_oscdest_alloc(xmlpp::Element* TargetElem)
 {
   std::string dest(TargetElem->get_attribute_value("dest"));
   std::string path(TargetElem->get_attribute_value("path"));
   std::string s_argmap(TargetElem->get_attribute_value("argmap"));
-  osc_destination_t::arg_mode_t argmode(osc_destination_t::source);
+  dest_osc_t::arg_mode_t argmode(dest_osc_t::source);
   std::vector<unsigned int> argmap;
   if( s_argmap.size() ){
-    argmode = osc_destination_t::replace;
+    argmode = dest_osc_t::replace;
     if( strcmp( s_argmap.c_str(), "replace" ) != 0 ){
-      argmode = osc_destination_t::reorder;
+      argmode = dest_osc_t::reorder;
       std::stringstream ss(s_argmap);
       unsigned int i;
       while (ss >> i){
@@ -78,8 +78,8 @@ osc_destination_t* xml_oscdest_alloc(xmlpp::Element* TargetElem)
   }
   std::string format(TargetElem->get_attribute_value("printf"));
   if( format.size() )
-    argmode = osc_destination_t::printf;
-  osc_destination_t* pDestination(new osc_destination_t(dest,path,argmap,argmode,format));
+    argmode = dest_osc_t::printf;
+  dest_osc_t* pDestination(new dest_osc_t(dest,path,argmap,argmode,format));
   // now set condition data:
   std::string condition(TargetElem->get_attribute_value("condition"));
   if( condition.size() > 0 )
@@ -145,10 +145,10 @@ int main(int argc, char** argv)
             TargetIt != DMXNodes.end(); ++TargetIt){
           xmlpp::Element* TargetElem = dynamic_cast<xmlpp::Element*>(*TargetIt);
           if( TargetElem ){
-            artnet_dest_t* pDMX(new artnet_dest_t(TargetElem));
+            dest_artnetdmx_t* pDMX(new dest_artnetdmx_t(TargetElem));
             std::string serverpath(TargetElem->get_attribute_value("serverpath"));
             std::string types(TargetElem->get_attribute_value("types"));
-            pServer->add_method(serverpath,types.c_str(),artnet_dest_t::static_event_handler,pDMX);
+            pServer->add_method(serverpath,types.c_str(),dest_artnetdmx_t::static_event_handler,pDMX);
             list_dest_dmx.push_back(pDMX);
           }
         }
@@ -160,8 +160,8 @@ int main(int argc, char** argv)
           if( TargetElem ){
             std::string serverpath(TargetElem->get_attribute_value("serverpath"));
             std::string types(TargetElem->get_attribute_value("types"));
-            osc_destination_t* pDestination(xml_oscdest_alloc(TargetElem));
-            pServer->add_method(serverpath,types.c_str(),osc_destination_t::static_event_handler,pDestination);
+            dest_osc_t* pDestination(xml_oscdest_alloc(TargetElem));
+            pServer->add_method(serverpath,types.c_str(),dest_osc_t::static_event_handler,pDestination);
             list_dest_osc.push_back(pDestination);
           }
         }
@@ -173,8 +173,8 @@ int main(int argc, char** argv)
           if( TargetElem ){
             std::string serverpath(TargetElem->get_attribute_value("serverpath"));
             std::string types(TargetElem->get_attribute_value("types"));
-            lsl_destination_t* pDestination( new lsl_destination_t( TargetElem, types.size() ) );
-            pServer->add_method(serverpath,types.c_str(),lsl_destination_t::static_event_handler,pDestination);
+            dest_lsl_t* pDestination( new dest_lsl_t( TargetElem, types.size() ) );
+            pServer->add_method(serverpath,types.c_str(),dest_lsl_t::static_event_handler,pDestination);
             list_dest_lsl.push_back(pDestination);
           }
         }
@@ -192,9 +192,9 @@ int main(int argc, char** argv)
             int argnum(atoi(s_argnum.c_str()));
             std::string serverpath(MidiElem->get_attribute_value("serverpath"));
             std::string types(MidiElem->get_attribute_value("types"));
-            midi_destination_t* pMidi;
-            pMidi = new midi_destination_t(midic,channel,param,argnum);
-            pServer->add_method(serverpath,types.c_str(),midi_destination_t::static_event_handler,pMidi);
+            dest_midicc_t* pMidi;
+            pMidi = new dest_midicc_t(midic,channel,param,argnum);
+            pServer->add_method(serverpath,types.c_str(),dest_midicc_t::static_event_handler,pMidi);
             list_dest_midi.push_back(pMidi);
           }
         }
@@ -217,8 +217,8 @@ int main(int argc, char** argv)
             int cchannel(atoi(s_cchannel.c_str()));
             std::string s_cparam(TargetElem->get_attribute_value("clientparam"));
             int cparam(atoi(s_cparam.c_str()));
-            osc_destination_t* pDestination(xml_oscdest_alloc(TargetElem));
-            midic.add_method(cchannel,cparam,osc_destination_t::static_event_handler,pDestination);
+            dest_osc_t* pDestination(xml_oscdest_alloc(TargetElem));
+            midic.add_method(cchannel,cparam,dest_osc_t::static_event_handler,pDestination);
             list_dest_osc.push_back(pDestination);
           }
         }
@@ -232,8 +232,8 @@ int main(int argc, char** argv)
             int cchannel(atoi(s_cchannel.c_str()));
             std::string s_cparam(TargetElem->get_attribute_value("clientparam"));
             int cparam(atoi(s_cparam.c_str()));
-            lsl_destination_t* pDestination( new lsl_destination_t( TargetElem, 1 ) );
-            midic.add_method(cchannel,cparam,lsl_destination_t::static_event_handler,pDestination);
+            dest_lsl_t* pDestination( new dest_lsl_t( TargetElem, 1 ) );
+            midic.add_method(cchannel,cparam,dest_lsl_t::static_event_handler,pDestination);
             list_dest_lsl.push_back(pDestination);
           }
         }
@@ -251,9 +251,9 @@ int main(int argc, char** argv)
             int channel(atoi(s_channel.c_str()));
             std::string s_param(MidiElem->get_attribute_value("param"));
             int param(atoi(s_param.c_str()));
-            midi_destination_t* pMidi;
-            pMidi = new midi_destination_t(midic,channel,param,0);
-            midic.add_method(cchannel,cparam,midi_destination_t::static_event_handler,pMidi);
+            dest_midicc_t* pMidi;
+            pMidi = new dest_midicc_t(midic,channel,param,0);
+            midic.add_method(cchannel,cparam,dest_midicc_t::static_event_handler,pMidi);
             list_dest_midi.push_back(pMidi);
           }
         }

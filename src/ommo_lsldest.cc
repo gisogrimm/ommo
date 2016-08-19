@@ -7,7 +7,7 @@ lsl_cfg_t::lsl_cfg_t( xmlpp::Element* cfg )
   GET_ATTRIBUTE(type);
 }
 
-lsl_destination_t::lsl_destination_t( xmlpp::Element* cfg, uint32_t lslchannels )
+dest_lsl_t::dest_lsl_t( xmlpp::Element* cfg, uint32_t lslchannels )
   : lsl_cfg_t( cfg ),
     info( name, type, lslchannels ),
     outlet(info),
@@ -15,11 +15,11 @@ lsl_destination_t::lsl_destination_t( xmlpp::Element* cfg, uint32_t lslchannels 
 {
 }
 
-lsl_destination_t::~lsl_destination_t()
+dest_lsl_t::~dest_lsl_t()
 {
 }
 
-int lsl_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
+int dest_lsl_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
 {
   if( argc != (int)lslchannels_ )
     return 1;

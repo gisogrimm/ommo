@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 
-void osc_destination_t::set_valmap(float v1, float v2)
+void dest_osc_t::set_valmap(float v1, float v2)
 {
   val_min = v1;
   //val_scale = std::min(1.0,std::max(0.0,1.0/(v2-v1)));
@@ -11,33 +11,33 @@ void osc_destination_t::set_valmap(float v1, float v2)
   use_valmap = true;
 }
 
-void osc_destination_t::set_condition(float val)
+void dest_osc_t::set_condition(float val)
 {
   use_condition = true;
   condition_val = val;
 }
 
-void osc_destination_t::remove_condition()
+void dest_osc_t::remove_condition()
 {
   use_condition = false;
 }
 
-void osc_destination_t::add_float(float f)
+void dest_osc_t::add_float(float f)
 {
   lo_message_add_float(own_msg,f);
 }
 
-void osc_destination_t::add_int32(int32_t i)
+void dest_osc_t::add_int32(int32_t i)
 {
   lo_message_add_float(own_msg,i);
 }
 
-void osc_destination_t::add_string(const std::string& s)
+void dest_osc_t::add_string(const std::string& s)
 {
   lo_message_add_string(own_msg,s.c_str());
 }
 
-bool osc_destination_t::lo_message_copy_arg(lo_message dest, lo_message src, int arg, bool x_valmap)
+bool dest_osc_t::lo_message_copy_arg(lo_message dest, lo_message src, int arg, bool x_valmap)
 {
   int argc(lo_message_get_argc(src));
   const char* types(lo_message_get_types(src));
@@ -62,7 +62,7 @@ bool osc_destination_t::lo_message_copy_arg(lo_message dest, lo_message src, int
   return false;
 }
 
-osc_destination_t::osc_destination_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode, const std::string& format)
+dest_osc_t::dest_osc_t(const std::string& target,const std::string& path, const std::vector<unsigned int>& argmap, arg_mode_t argmode, const std::string& format)
   : target_(lo_address_new_from_url(target.c_str())),
     path_(path),
     argmap_(argmap),
@@ -77,13 +77,13 @@ osc_destination_t::osc_destination_t(const std::string& target,const std::string
   lo_address_set_ttl(target_,1);
 }
 
-osc_destination_t::~osc_destination_t()
+dest_osc_t::~dest_osc_t()
 {
   lo_message_free(own_msg);
   lo_address_free(target_);
 }
 
-int osc_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
+int dest_osc_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
 {
   if( use_condition ){
     if( (argc > 0) && (types[0] == 'f') )

@@ -40,21 +40,21 @@ void artnetDMX_t::send(uint8_t universe, const std::vector<uint16_t>& data)
 }
 
 
-artnet_dest_t::artnet_dest_t(xmlpp::Element* cfg)
+dest_artnetdmx_t::dest_artnetdmx_t(xmlpp::Element* cfg)
   : artnet_cfg_t(cfg),
     artnetDMX_t(hostname.c_str(),port.c_str())
 {
   prepare();
 }
 
-void artnet_dest_t::prepare()
+void dest_artnetdmx_t::prepare()
 {
   data.resize(channels.size());
   for(uint32_t k=scale.size();k<channels.size();++k)
     scale.push_back(1.0f);
 }
 
-int artnet_dest_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg)
+int dest_artnetdmx_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg)
 {
   if( (strcmp(types,"f")==0) && (argc==1) ){
     for(uint32_t k=0;k<channels.size();++k)
@@ -74,7 +74,7 @@ artnet_cfg_t::artnet_cfg_t(xmlpp::Element* cfg)
   GET_ATTRIBUTE(scale);
 }
 
-artnet_dest_t::~artnet_dest_t()
+dest_artnetdmx_t::~dest_artnetdmx_t()
 {
 }
 

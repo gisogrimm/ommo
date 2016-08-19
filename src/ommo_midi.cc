@@ -40,7 +40,7 @@ void midi_client_t::emit_event(int channel, int param, int value)
 
 
 
-midi_destination_t::midi_destination_t(midi_client_t& mc, unsigned int channel, unsigned int param, unsigned argnum)
+dest_midicc_t::dest_midicc_t(midi_client_t& mc, unsigned int channel, unsigned int param, unsigned argnum)
   : mc_(mc),
     channel_(channel),
     param_(param),
@@ -48,11 +48,11 @@ midi_destination_t::midi_destination_t(midi_client_t& mc, unsigned int channel, 
 {
 }
 
-midi_destination_t::~midi_destination_t()
+dest_midicc_t::~dest_midicc_t()
 {
 }
 
-int midi_destination_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
+int dest_midicc_t::event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg)
 {
   if( ((int)(argnum_) < argc) && (types[argnum_] == 'f') )
     mc_.send_midi(channel_,param_,127*(argv[argnum_]->f));

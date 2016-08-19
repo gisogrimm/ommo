@@ -13,10 +13,10 @@ public:
   std::string type;
 };
 
-class lsl_destination_t : public dest_t, public lsl_cfg_t {
+class dest_lsl_t : public dest_t, public lsl_cfg_t {
 public:
-  lsl_destination_t( xmlpp::Element* cfg, uint32_t lslchannels );
-  virtual ~lsl_destination_t();
+  dest_lsl_t( xmlpp::Element* cfg, uint32_t lslchannels );
+  virtual ~dest_lsl_t();
   int event_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message in_msg);
 private:
   lsl::stream_info info;
