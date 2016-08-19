@@ -7,6 +7,7 @@
 #include "ommo_midi.h"
 #include "ommo_oscdest.h"
 #include "ommo_artnetdmx.h"
+#include "ommo_lsldest.h"
 
 static int exit_handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *user_data)
 {
@@ -19,6 +20,9 @@ typedef std::vector<TASCAR::osc_server_t*>::iterator serverlist_it_t;
 
 typedef std::vector<osc_destination_t*> list_dest_osc_t;
 typedef std::vector<osc_destination_t*>::iterator list_dest_osc_it_t;
+
+typedef std::vector<lsl_destination_t*> list_dest_lsl_t;
+typedef std::vector<lsl_destination_t*>::iterator list_dest_lsl_it_t;
 
 typedef std::vector<midi_destination_t*> list_dest_midi_t;
 typedef std::vector<midi_destination_t*>::iterator list_dest_midi_it_t;
@@ -120,6 +124,7 @@ int main(int argc, char** argv)
   midi_client_t midic("ommo_bridge");
   serverlist_t serverlist;
   list_dest_osc_t list_dest_osc;
+  list_dest_lsl_t list_dest_lsl;
   list_dest_midi_t list_dest_midi;
   list_dest_dmx_t list_dest_dmx;
   xmlpp::DomParser parser(cfgfile);
@@ -158,6 +163,19 @@ int main(int argc, char** argv)
             osc_destination_t* pDestination(xml_oscdest_alloc(TargetElem));
             pServer->add_method(serverpath,types.c_str(),osc_destination_t::static_event_handler,pDestination);
             list_dest_osc.push_back(pDestination);
+          }
+        }
+        // scan LSL targets:
+        xmlpp::Node::NodeList TargetNodesLSL = ServerElem->get_children("lsl");
+        for(xmlpp::Node::NodeList::iterator TargetIt=TargetNodesLSL.begin();
+            TargetIt != TargetNodesLSL.end(); ++TargetIt){
+          xmlpp::Element* TargetElem = dynamic_cast<xmlpp::Element*>(*TargetIt);
+          if( TargetElem ){
+            std::string serverpath(TargetElem->get_attribute_value("serverpath"));
+            std::string types(TargetElem->get_attribute_value("types"));
+            lsl_destination_t* pDestination( new lsl_destination_t( TargetElem, types.size() ) );
+            pServer->add_method(serverpath,types.c_str(),lsl_destination_t::static_event_handler,pDestination);
+            list_dest_lsl.push_back(pDestination);
           }
         }
         // scan midi targets:
@@ -202,6 +220,21 @@ int main(int argc, char** argv)
             osc_destination_t* pDestination(xml_oscdest_alloc(TargetElem));
             midic.add_method(cchannel,cparam,osc_destination_t::static_event_handler,pDestination);
             list_dest_osc.push_back(pDestination);
+          }
+        }
+        // scan LSL targets:
+        xmlpp::Node::NodeList TargetNodesLSL = ServerElem->get_children("lsl");
+        for(xmlpp::Node::NodeList::iterator TargetIt=TargetNodesLSL.begin();
+            TargetIt != TargetNodesLSL.end(); ++TargetIt){
+          xmlpp::Element* TargetElem = dynamic_cast<xmlpp::Element*>(*TargetIt);
+          if( TargetElem ){
+            std::string s_cchannel(TargetElem->get_attribute_value("clientchannel"));
+            int cchannel(atoi(s_cchannel.c_str()));
+            std::string s_cparam(TargetElem->get_attribute_value("clientparam"));
+            int cparam(atoi(s_cparam.c_str()));
+            lsl_destination_t* pDestination( new lsl_destination_t( TargetElem, 1 ) );
+            midic.add_method(cchannel,cparam,lsl_destination_t::static_event_handler,pDestination);
+            list_dest_lsl.push_back(pDestination);
           }
         }
         // scan midi targets:

@@ -6,13 +6,13 @@ BINFILES = ommo_bridge test_artnetdmx
 
 INSTBIN = $(patsubst %,$(PREFIX)/bin/%,$(BINFILES))
 
-OBJECTS = libhos_midi_ctl.o ommo_dest.o ommo_midi.o ommo_oscdest.o ommo_artnetdmx.o
+OBJECTS = libhos_midi_ctl.o ommo_dest.o ommo_midi.o ommo_oscdest.o ommo_artnetdmx.o ommo_lsldest.o
 
 EXTERNALS = alsa jack sndfile libxml++-2.6 liblo
 
 VPATH = ../src
 
-LDLIBS += -ltascar -ldl
+LDLIBS += -ltascar -ldl -llsl
 LDFLAGS += -L../tascar/build
 CXXFLAGS += -I../tascar/src -Wall
 CPPFLAGS += -I../tascar/src -Wall
