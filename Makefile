@@ -8,14 +8,14 @@ INSTBIN = $(patsubst %,$(PREFIX)/bin/%,$(BINFILES))
 
 OBJECTS = libhos_midi_ctl.o ommo_dest.o ommo_midi.o ommo_oscdest.o ommo_artnetdmx.o ommo_lsldest.o
 
-EXTERNALS = alsa jack sndfile libxml++-2.6 liblo
+EXTERNALS = alsa jack sndfile libxml++-2.6 liblo fftw3f
 
 VPATH = ../src
 
 LDLIBS += -ltascar -ldl -llsl
-LDFLAGS += -L../tascar/build
-CXXFLAGS += -I../tascar/src -Wall
-CPPFLAGS += -I../tascar/src -Wall
+LDFLAGS += -L../tascar/libtascar/build
+CXXFLAGS += -I../tascar/libtascar/src -Wall
+CPPFLAGS += -I../tascar/libtascar/src -Wall
 
 LDLIBS += `pkg-config --libs $(EXTERNALS)`
 CXXFLAGS += `pkg-config --cflags $(EXTERNALS)`
@@ -39,7 +39,7 @@ $(BINFILES): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 libtascar: tascar
-	$(MAKE) -C tascar lib
+	$(MAKE) -C tascar/libtascar
 
 install:
 	$(MAKE) -C build -f ../Makefile $(INSTBIN)
