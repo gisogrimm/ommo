@@ -1,4 +1,4 @@
-ARCH = $(shell uname -m)
+VERSION=0.2
 
 PREFIX = /usr/local
 
@@ -15,14 +15,17 @@ VPATH = ../src
 INCLUDES=-I/usr/include/tascar
 
 LDLIBS += -ltascar -ldl -llsl64
-#LDFLAGS += -L../tascar/libtascar/build
 CXXFLAGS += $(INCLUDES) -Wall -std=c++11
 CPPFLAGS += $(INCLUDES) -Wall
 
 LDLIBS += `pkg-config --libs $(EXTERNALS)`
 CXXFLAGS += `pkg-config --cflags $(EXTERNALS)`
 
+COMMITHASH=$(shell git log -1 --abbrev=7 --pretty='format:%h')
+COMMITCNT=$(shell git log --pretty='format:%h'|wc -l)
+
 all:
+	echo $(VERSION)-$(COMMITCNT)-$(COMMITHASH) > version
 	mkdir -p build
 	$(MAKE) -C build -f ../Makefile $(BINFILES)
 	$(MAKE) doc
@@ -53,4 +56,6 @@ clean:
 .PHONY : doc
 
 doc:
-	(cd doc && doxygen doxygen.cfg)
+	sed -e "s/PROJECT_NUMBER.*/PROJECT_NUMBER = $(VERSION)/1" doc/doxygen.cfg > doc/temp.cfg
+	(cd doc && doxygen temp.cfg)
+	rm -f doc/temp.cfg

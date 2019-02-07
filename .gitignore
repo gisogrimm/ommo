@@ -36,3 +36,6 @@ tascar
 
 # auto-generated make files
 *.mk
+
+# auto-generated version file:
+version
