@@ -15,6 +15,7 @@ VPATH = ../src
 INCLUDES=-I/usr/include/tascar
 
 
+CXXFLAGS += $(LIBDIR)
 LDLIBS += -ltascar -ldl -llsl64
 CXXFLAGS += $(INCLUDES) -Wall -std=c++11
 CPPFLAGS += $(INCLUDES) -Wall
@@ -39,7 +40,7 @@ $(PREFIX)/bin/%: %
 $(BINFILES): $(OBJECTS)
 
 %: %.o
-	$(CXX) $(CXXFLAGS) $(LIBDIR) $(LDLIBS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $(LDLIBS) $^ -o $@
 
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -MM -MF $(@:.o=.mk) $<
