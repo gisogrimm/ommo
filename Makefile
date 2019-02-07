@@ -12,15 +12,17 @@ EXTERNALS = alsa jack sndfile libxml++-2.6 liblo fftw3f
 
 VPATH = ../src
 
+INCLUDES=-I/usr/include/tascar
+
 LDLIBS += -ltascar -ldl -llsl64
-LDFLAGS += -L../tascar/libtascar/build
-CXXFLAGS += -I../tascar/libtascar/src -Wall
-CPPFLAGS += -I../tascar/libtascar/src -Wall
+#LDFLAGS += -L../tascar/libtascar/build
+CXXFLAGS += $(INCLUDES) -Wall -std=c++11
+CPPFLAGS += $(INCLUDES) -Wall
 
 LDLIBS += `pkg-config --libs $(EXTERNALS)`
 CXXFLAGS += `pkg-config --cflags $(EXTERNALS)`
 
-all: libtascar
+all:
 	mkdir -p build
 	$(MAKE) -C build -f ../Makefile $(BINFILES)
 	$(MAKE) doc
@@ -39,9 +41,6 @@ $(BINFILES): $(OBJECTS)
 	$(CPP) $(CPPFLAGS) -MM -MF $(@:.o=.mk) $<
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-libtascar: tascar
-	$(MAKE) -C tascar/libtascar
-
 install:
 	$(MAKE) -C build -f ../Makefile $(INSTBIN)
 
@@ -49,11 +48,7 @@ uninstall:
 	rm -f $(INSTBIN)
 
 clean:
-	$(MAKE) -C tascar clean
 	rm -Rf *~ src/*~ build doc/html
-
-tascar:
-	git clone https://github.com/gisogrimm/tascar
 
 .PHONY : doc
 
