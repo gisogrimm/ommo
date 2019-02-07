@@ -12,7 +12,7 @@ EXTERNALS = alsa jack sndfile libxml++-2.6 liblo fftw3f
 
 VPATH = ../src
 
-LDLIBS += -ltascar -ldl -llsl
+LDLIBS += -ltascar -ldl -llsl64
 LDFLAGS += -L../tascar/libtascar/build
 CXXFLAGS += -I../tascar/libtascar/src -Wall
 CPPFLAGS += -I../tascar/libtascar/src -Wall
@@ -23,6 +23,7 @@ CXXFLAGS += `pkg-config --cflags $(EXTERNALS)`
 all: libtascar
 	mkdir -p build
 	$(MAKE) -C build -f ../Makefile $(BINFILES)
+	$(MAKE) doc
 
 include $(wildcard *.mk)
 
