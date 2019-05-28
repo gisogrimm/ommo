@@ -121,10 +121,12 @@ int main(int argc, char** argv)
   signal(SIGINT, &sighandler);
   std::string cfgfile;
   std::string ctlport;
+  std::string ctlproto("UDP");
   const char *options = "hc:";
   struct option long_options[] = { 
     { "help",     0, 0, 'h' },
     { "ctlport",  1, 0, 'c' },
+    { "ctlproto",  1, 0, 'p' },
     { 0, 0, 0, 0 }
   };
   int opt(0);
@@ -138,6 +140,9 @@ int main(int argc, char** argv)
     case 'c':
       ctlport = optarg;
       break;
+    case 'p':
+      ctlproto = optarg;
+      break;
     }
   }
   if( optind < argc )
@@ -146,7 +151,7 @@ int main(int argc, char** argv)
     TASCAR::app_usage("ommo_bridge",long_options,"configfile");
     return -1;
   }
-  TASCAR::osc_server_t controller("",ctlport);
+  TASCAR::osc_server_t controller("",ctlport,ctlproto);
   controller.add_method("/quit","",exit_handler,&b_quit);
   controller.activate();
   midi_client_t midic("ommo_bridge");
@@ -166,7 +171,10 @@ int main(int argc, char** argv)
       if( ServerElem ){
         std::string mcaddr(ServerElem->get_attribute_value("multicast"));
         std::string port(ServerElem->get_attribute_value("port"));
-        TASCAR::osc_server_t* pServer = new TASCAR::osc_server_t(mcaddr,port);
+        std::string proto(ServerElem->get_attribute_value("proto"));
+        if( proto.empty() )
+          proto = "UDP";
+        TASCAR::osc_server_t* pServer = new TASCAR::osc_server_t(mcaddr,port,proto);
         // scan DMX targets:
         xmlpp::Node::NodeList DMXNodes = ServerElem->get_children("dmx");
         for(xmlpp::Node::NodeList::iterator TargetIt=DMXNodes.begin();
